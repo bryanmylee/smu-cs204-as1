@@ -11,9 +11,8 @@ class Client:
         self.is_logged_in = False
 
 
-def timestamp_print(*values):
-    timestamp = datetime.now().strftime("%H:%M:%S")
-    print(timestamp, *values)
+def get_timestamp():
+    return datetime.now().strftime("%H:%M:%S")
 
 
 def get_host_port():
@@ -30,14 +29,11 @@ def create_async_server_socket(host, port):
     server.bind((host, port))
     server.listen()
     server.setblocking(False)
-    timestamp_print(f"Server waiting for Clients on port {port}.")
+    print(f"{get_timestamp()} Server waiting for Clients on port {port}.")
     return server
 
 
 def accept_fn(server, mask, clients):
-    """
-    When a connection is made, read the next message to get the username.
-    """
     conn, addr = server.accept()
     host, port = addr
     clients[conn.fileno()] = Client(conn)
@@ -52,7 +48,7 @@ def listen_fn(conn, mask, clients):
     data_bytes = conn.recv(1024)
     if not data_bytes:
         # Connection was forcibly closed.
-        timestamp_print("Closing", conn)
+        print(f"{get_timestamp()} Closing {conn}")
         sel.unregister(conn)
         conn.close()
         clients.pop(conn.fileno(), None)
@@ -61,23 +57,25 @@ def listen_fn(conn, mask, clients):
     data = data_bytes.decode("utf-8")
     if not client.is_logged_in:
         username = data[:-1]
-        login(client, username)
+        login(client, username, clients)
         return
 
-    timestamp_print("Echoing", data_bytes.decode("utf-8"), "to", conn)
+    print(f"{get_timestamp()} Echoing {data[:-1]} to {conn}")
     for key, client in clients.items():
         if key != conn.fileno():
             client.conn.send(data_bytes)
 
 
-def login(client, username):
+def login(client, username, clients):
+    global port
     client.is_logged_in = True
     client.username = username
-    timestamp_print(f"*** {username} has joined the chat room. ***")
-    timestamp_print(f"Server waiting for Clients on port {port}.")
+    print(f"{get_timestamp()} *** {username} has joined the chat room. ***")
+    print(f"{get_timestamp()} Server waiting for Clients on port {port}.")
 
 
 if __name__ == "__main__":
+    global port
     host, port = get_host_port()
     server = create_async_server_socket(host, port)
     # Create a selector with socket object key and a function value that
