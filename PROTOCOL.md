@@ -40,7 +40,7 @@
 
 1395 - 1396 client `bryan` force quit.
 
-### Analysis packets
+### Client behaviour
 
 #### Logging in
 
@@ -186,5 +186,36 @@ We can assume that this message is all that is required to initiate a private me
 ```
 Data: 657869740a
 Decoded: exit\n
+```
+
+
+
+## Server behaviour
+
+#### Starting the server
+
+When starting, add to the logs:
+
+```
+{hh:mm:ss} Server waiting for Clients on port {port}.
+```
+
+#### Logging in
+
+##### Locally
+
+When a user logs on, they will establish a connection, then send:
+
+```
+{username}\n
+```
+
+Use this to label the connection, and store the connection as a client.
+
+Then, print:
+
+```
+{hh:mm:ss} *** {username} has joined the chat room. ***
+{hh:mm:ss} Server waiting for Clients on port {port}.
 ```
 
