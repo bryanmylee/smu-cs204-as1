@@ -219,3 +219,37 @@ Then, print:
 {hh:mm:ss} Server waiting for Clients on port {port}.
 ```
 
+##### Remote
+
+Once a client connects, send their username to all other clients:
+
+```
+{hh:mm:ss} *** {username} has joined the chat room. ***\n\n
+```
+
+#### WHOISIN
+
+##### Locally
+
+Nothing.
+
+##### Remote
+
+The client sends:
+
+```
+users\n
+```
+
+Then, respond with:
+
+```
+List of the users connected at 23:10:11
+
+1) bryan since Fri Oct 30 23:10:19 SGT 2020
+
+2) ben since Fri Oct 30 23:10:21 SGT 2020
+
+
+```
+

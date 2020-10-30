@@ -9,10 +9,11 @@ class Client:
         self.conn = conn
         self.username = None
         self.is_logged_in = False
+        self.since = None
 
 
-def get_timestamp():
-    return datetime.now().strftime("%H:%M:%S")
+def get_timestamp(now=datetime.now()):
+    return now.strftime("%H:%M:%S")
 
 
 def get_host_port():
@@ -54,10 +55,13 @@ def listen_fn(conn, mask, clients):
         clients.pop(conn.fileno(), None)
         return
 
-    data = data_bytes.decode("utf-8")
+    data = data_bytes.decode("utf-8")[:-1]
     if not client.is_logged_in:
-        username = data[:-1]
+        username = data
         login(client, username, clients)
+        return
+    if data.startswith("users"):
+        whoisin(client, clients)
         return
 
     print(f"{get_timestamp()} Echoing {data[:-1]} to {conn}")
@@ -66,20 +70,33 @@ def listen_fn(conn, mask, clients):
             client.conn.send(data_bytes)
 
 
-def login(client, with_username, clients):
-    global port
-    client.is_logged_in = True
-    client.username = with_username
-    print(f"{get_timestamp()} *** {client.username} has joined the chat room. ***")
-    print(f"{get_timestamp()} Server waiting for Clients on port {port}.")
-    message = f"{get_timestamp()} *** {client.username} has joined the chat room. ***\n\n"
-    broadcast(client, message, clients)
-
-
 def broadcast(sender: Client, message, clients):
     for client in clients.values():
         if sender.conn != client.conn:
             client.conn.send(str.encode(message))
+
+
+def login(client: Client, with_username, clients):
+    global port
+    now = datetime.now()
+    client.is_logged_in = True
+    client.username = with_username
+    client.since = now
+    print(f"{get_timestamp(now)} *** {client.username} has joined the chat room. ***")
+    print(f"{get_timestamp(now)} Server waiting for Clients on port {port}.")
+    message = f"{get_timestamp(now)} *** {client.username} has joined the chat room. ***\n\n"
+    broadcast(client, message, clients)
+
+
+def whoisin(asker: Client, clients):
+    lines = [f"List of the users connected at {get_timestamp()}"]
+    client_list = list(clients.values())
+    client_list.sort(key=lambda c: c.since)
+    for i, client in enumerate(client_list):
+        timestamp = client.since.strftime("%a %b %d %H:%M:%S SGT %Y")
+        lines.append(f"{i + 1}) {client.username} since {timestamp}")
+    response = "\n\n".join(lines) + "\n\n"
+    asker.conn.send(str.encode(response))
 
 
 if __name__ == "__main__":
