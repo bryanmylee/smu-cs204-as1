@@ -46,27 +46,35 @@ def accept_fn(server, mask, clients):
 
 
 def listen_fn(conn, mask, clients):
-    # Non-blocking conn should be ready for just one recv.
+    # Get the matching Client object for the given connection.
     client = clients[conn.fileno()]
+    # Non-blocking conn should be ready for just one recv.
     data_bytes = conn.recv(1024)
-    if not client.is_logged_in:
-        clients[conn.fileno()].is_logged_in = True
-        username = data_bytes.decode("utf-8")[:-1]
-        clients[conn.fileno()].username = username
-        timestamp_print(f"*** {username} has joined the chat room. ***")
-        timestamp_print(f"Server waiting for Clients on port {port}.")
-        return
-
-    if data_bytes:
-        timestamp_print("Echoing", data_bytes.decode("utf-8"), "to", conn)
-        for key, client in clients.items():
-            if key != conn.fileno():
-                client.conn.send(data_bytes)
-    else:
+    if not data_bytes:
+        # Connection was forcibly closed.
         timestamp_print("Closing", conn)
         sel.unregister(conn)
         conn.close()
         clients.pop(conn.fileno(), None)
+        return
+
+    data = data_bytes.decode("utf-8")
+    if not client.is_logged_in:
+        username = data[:-1]
+        login(client, username)
+        return
+
+    timestamp_print("Echoing", data_bytes.decode("utf-8"), "to", conn)
+    for key, client in clients.items():
+        if key != conn.fileno():
+            client.conn.send(data_bytes)
+
+
+def login(client, username):
+    client.is_logged_in = True
+    client.username = username
+    timestamp_print(f"*** {username} has joined the chat room. ***")
+    timestamp_print(f"Server waiting for Clients on port {port}.")
 
 
 if __name__ == "__main__":
