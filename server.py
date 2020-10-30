@@ -67,17 +67,20 @@ def listen_fn(conn, mask, clients):
     if data.startswith("msg@"):
         recipient_name, message = data[4:].split(" ", maxsplit=1)
         private_message(client, clients, recipient_name, message)
+        return
+    if data.startswith("msg"):
+        message = data[3:]
+        public_message(client, clients, message)
+        return
 
-    print(f"{get_timestamp()} Echoing {data[:-1]} to {conn}")
-    for key, client in clients.items():
-        if key != conn.fileno():
-            client.conn.send(data_bytes)
 
-
-def broadcast(sender: Client, message, clients):
+def broadcast(sender: Client, clients, message, include_sender=False):
     for client in clients.values():
-        if sender.conn != client.conn:
-            client.conn.send(str.encode(message))
+        if include_sender or sender.conn != client.conn:
+            try:
+                client.conn.send(str.encode(message))
+            except:
+                pass
 
 
 def login(client: Client, with_username, clients):
@@ -89,7 +92,7 @@ def login(client: Client, with_username, clients):
     print(f"{get_timestamp(now)} *** {client.username} has joined the chat room. ***")
     print(f"{get_timestamp(now)} Server waiting for Clients on port {port}.")
     message = f"{get_timestamp(now)} *** {client.username} has joined the chat room. ***\n\n"
-    broadcast(client, message, clients)
+    broadcast(client, clients, message)
 
 
 def whoisin(asker: Client, clients):
@@ -100,26 +103,49 @@ def whoisin(asker: Client, clients):
         timestamp = client.since.strftime("%a %b %d %H:%M:%S SGT %Y")
         lines.append(f"{i + 1}) {client.username} since {timestamp}")
     response = "\n\n".join(lines) + "\n\n"
-    asker.conn.send(str.encode(response))
+    try:
+        asker.conn.send(str.encode(response))
+    except:
+        pass
 
 
 def logout(asker: Client, clients, proper=True):
     global sel
+    now = datetime.now()
     if proper:
-        print(f"{get_timestamp()} {asker.username} disconnected with a LOGOUT message.")
+        print(f"{get_timestamp(now)} {asker.username} disconnected with a LOGOUT message.")
+        try:
+            asker.conn.send(b"*** Server has closed the connection ***")
+        except:
+            pass
+        logout_broadcast = f"{get_timestamp(now)} *** {asker.username} has left the chat room. ***\n\n"
+        broadcast(asker, clients, logout_broadcast)
     else:
         print(f"{get_timestamp()} {asker.username} disconnected badly.")
-    asker.conn.send(b"*** Server has closed the connection ***")
-    asker.conn.close()
+
+    try:
+        asker.conn.close()
+    except:
+        pass
+
     clients.pop(asker.conn.fileno(), None)
     sel.unregister(asker.conn)
 
 
 def private_message(sender, clients, recipient_name, message):
-    formatted_message = f"{get_timestamp()} {sender.username}:{message}\n\n"
+    formatted_message = f"{get_timestamp()} {sender.username}:{message}"
     for client in clients.values():
         if client.username == recipient_name:
-            client.conn.send(str.encode(formatted_message))
+            try:
+                client.conn.send(str.encode(formatted_message + "\n\n"))
+            except:
+                pass
+
+
+def public_message(sender, clients, message):
+    formatted_message = f"{get_timestamp()} {sender.username}: {message}"
+    print(formatted_message)
+    broadcast(sender, clients, formatted_message + "\n\n", include_sender=True)
 
 
 if __name__ == "__main__":
