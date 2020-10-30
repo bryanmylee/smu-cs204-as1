@@ -253,3 +253,14 @@ List of the users connected at 23:10:11
 
 ```
 
+### Private messaging
+
+Usernames with spaces in their names cannot receive private messages.
+
+The syntax for private messages is:
+
+```
+msg@{username} {message}
+```
+
+The first space after @ delimits the username and message.
