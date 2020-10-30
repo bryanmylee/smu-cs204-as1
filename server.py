@@ -120,10 +120,11 @@ def logout(asker: Client, clients, proper=True):
             asker.conn.send(b"*** Server has closed the connection ***")
         except:
             pass
-        logout_broadcast = f"{get_timestamp(now)} *** {asker.username} has left the chat room. ***\n\n"
-        broadcast(asker, clients, logout_broadcast)
     else:
         print(f"{get_timestamp()} {asker.username} disconnected badly.")
+
+    logout_broadcast = f"{get_timestamp(now)} *** {asker.username} has left the chat room. ***\n\n"
+    broadcast(asker, clients, logout_broadcast)
 
     try:
         asker.conn.close()
