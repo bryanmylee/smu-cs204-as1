@@ -64,6 +64,9 @@ def listen_fn(conn, mask, clients):
     if data.startswith("exit"):
         logout(client, clients)
         return
+    if data.startswith("msg@"):
+        recipient_name, message = data[4:].split(" ", maxsplit=1)
+        private_message(client, clients, recipient_name, message)
 
     print(f"{get_timestamp()} Echoing {data[:-1]} to {conn}")
     for key, client in clients.items():
@@ -110,6 +113,13 @@ def logout(asker: Client, clients, proper=True):
     asker.conn.close()
     clients.pop(asker.conn.fileno(), None)
     sel.unregister(asker.conn)
+
+
+def private_message(sender, clients, recipient_name, message):
+    formatted_message = f"{get_timestamp()} {sender.username}:{message}\n\n"
+    for client in clients.values():
+        if client.username == recipient_name:
+            client.conn.send(str.encode(formatted_message))
 
 
 if __name__ == "__main__":
