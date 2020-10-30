@@ -4,6 +4,13 @@ import socket
 import sys
 
 
+class Client:
+    def __init__(self, conn):
+        self.conn = conn
+        self.username = None
+        self.is_logged_in = False
+
+
 def timestamp_print(*values):
     timestamp = datetime.now().strftime("%H:%M:%S")
     print(timestamp, *values)
@@ -23,26 +30,38 @@ def create_async_server_socket(host, port):
     server.bind((host, port))
     server.listen()
     server.setblocking(False)
-    timestamp_print(f"Server waiting for Clients on port {port}")
+    timestamp_print(f"Server waiting for Clients on port {port}.")
     return server
 
 
 def accept_fn(server, mask, clients):
+    """
+    When a connection is made, read the next message to get the username.
+    """
     conn, addr = server.accept()
     host, port = addr
-    clients[conn.fileno()] = conn
-    timestamp_print("Accepted connection from", addr)
+    clients[conn.fileno()] = Client(conn)
     conn.setblocking(False)
     sel.register(conn, selectors.EVENT_READ, listen_fn)
 
 
 def listen_fn(conn, mask, clients):
+    # Non-blocking conn should be ready for just one recv.
+    client = clients[conn.fileno()]
     data_bytes = conn.recv(1024)
+    if not client.is_logged_in:
+        clients[conn.fileno()].is_logged_in = True
+        username = data_bytes.decode("utf-8")[:-1]
+        clients[conn.fileno()].username = username
+        timestamp_print(f"*** {username} has joined the chat room. ***")
+        timestamp_print(f"Server waiting for Clients on port {port}.")
+        return
+
     if data_bytes:
         timestamp_print("Echoing", data_bytes.decode("utf-8"), "to", conn)
-        for key, other_conn in clients.items():
+        for key, client in clients.items():
             if key != conn.fileno():
-                other_conn.send(data_bytes)
+                client.conn.send(data_bytes)
     else:
         timestamp_print("Closing", conn)
         sel.unregister(conn)
@@ -58,6 +77,7 @@ if __name__ == "__main__":
     sel = selectors.DefaultSelector()
     sel.register(server, selectors.EVENT_READ, accept_fn)
 
+    # A map from a socket file number key to a Client object.
     clients = {}
     while True:
         # Get all socket object keys in the selector.
