@@ -66,12 +66,20 @@ def listen_fn(conn, mask, clients):
             client.conn.send(data_bytes)
 
 
-def login(client, username, clients):
+def login(client, with_username, clients):
     global port
     client.is_logged_in = True
-    client.username = username
-    print(f"{get_timestamp()} *** {username} has joined the chat room. ***")
+    client.username = with_username
+    print(f"{get_timestamp()} *** {client.username} has joined the chat room. ***")
     print(f"{get_timestamp()} Server waiting for Clients on port {port}.")
+    message = f"{get_timestamp()} *** {client.username} has joined the chat room. ***\n\n"
+    broadcast(client, message, clients)
+
+
+def broadcast(sender: Client, message, clients):
+    for client in clients.values():
+        if sender.conn != client.conn:
+            client.conn.send(str.encode(message))
 
 
 if __name__ == "__main__":
