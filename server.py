@@ -12,7 +12,9 @@ class Client:
         self.since = None
 
 
-def get_timestamp(now=datetime.now()):
+def get_timestamp(now=None):
+    if now is None:
+        now = datetime.now()
     return now.strftime("%H:%M:%S")
 
 
