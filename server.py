@@ -35,6 +35,7 @@ def create_async_server_socket(host, port):
 
 
 def accept_fn(server, mask, clients):
+    global sel
     conn, addr = server.accept()
     host, port = addr
     clients[conn.fileno()] = Client(conn)
@@ -43,16 +44,13 @@ def accept_fn(server, mask, clients):
 
 
 def listen_fn(conn, mask, clients):
+    global sel
     # Get the matching Client object for the given connection.
     client = clients[conn.fileno()]
     # Non-blocking conn should be ready for just one recv.
     data_bytes = conn.recv(1024)
     if not data_bytes:
-        # Connection was forcibly closed.
-        print(f"{get_timestamp()} Closing {conn}")
-        sel.unregister(conn)
-        conn.close()
-        clients.pop(conn.fileno(), None)
+        logout(client, clients, proper=False)
         return
 
     data = data_bytes.decode("utf-8")[:-1]
@@ -62,6 +60,9 @@ def listen_fn(conn, mask, clients):
         return
     if data.startswith("users"):
         whoisin(client, clients)
+        return
+    if data.startswith("exit"):
+        logout(client, clients)
         return
 
     print(f"{get_timestamp()} Echoing {data[:-1]} to {conn}")
@@ -99,8 +100,21 @@ def whoisin(asker: Client, clients):
     asker.conn.send(str.encode(response))
 
 
+def logout(asker: Client, clients, proper=True):
+    global sel
+    if proper:
+        print(f"{get_timestamp()} {asker.username} disconnected with a LOGOUT message.")
+    else:
+        print(f"{get_timestamp()} {asker.username} disconnected badly.")
+    asker.conn.send(b"*** Server has closed the connection ***")
+    asker.conn.close()
+    clients.pop(asker.conn.fileno(), None)
+    sel.unregister(asker.conn)
+
+
 if __name__ == "__main__":
     global port
+    global sel
     host, port = get_host_port()
     server = create_async_server_socket(host, port)
     # Create a selector with socket object key and a function value that
