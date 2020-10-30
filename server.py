@@ -1,6 +1,13 @@
+from datetime import datetime
 import selectors
 import socket
 import sys
+
+
+def timestamp_print(*values):
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(timestamp, *values)
+
 
 def get_host_port():
     host = "127.0.0.1"
@@ -16,7 +23,7 @@ def create_async_server_socket(host, port):
     server.bind((host, port))
     server.listen()
     server.setblocking(False)
-    print(f"Server waiting for Clients on port {port}")
+    timestamp_print(f"Server waiting for Clients on port {port}")
     return server
 
 
@@ -24,7 +31,7 @@ def accept_fn(server, mask, clients):
     conn, addr = server.accept()
     host, port = addr
     clients[conn.fileno()] = conn
-    print("Accepted connection from", addr)
+    timestamp_print("Accepted connection from", addr)
     conn.setblocking(False)
     sel.register(conn, selectors.EVENT_READ, listen_fn)
 
@@ -32,12 +39,12 @@ def accept_fn(server, mask, clients):
 def listen_fn(conn, mask, clients):
     data_bytes = conn.recv(1024)
     if data_bytes:
-        print("Echoing", data_bytes.decode("utf-8"), "to", conn)
+        timestamp_print("Echoing", data_bytes.decode("utf-8"), "to", conn)
         for key, other_conn in clients.items():
             if key != conn.fileno():
                 other_conn.send(data_bytes)
     else:
-        print("Closing", conn)
+        timestamp_print("Closing", conn)
         sel.unregister(conn)
         conn.close()
         clients.pop(conn.fileno(), None)
