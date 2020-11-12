@@ -80,7 +80,7 @@ def broadcast(sender: Client, clients, message, include_sender=False):
     for client in clients.values():
         if include_sender or sender.conn != client.conn:
             try:
-                client.conn.send(str.encode(message))
+                client.conn.sendall(str.encode(message))
             except:
                 pass
 
@@ -106,7 +106,7 @@ def whoisin(asker: Client, clients):
         lines.append(f"{i + 1}) {client.username} since {timestamp}")
     response = "\n\n".join(lines) + "\n\n"
     try:
-        asker.conn.send(str.encode(response))
+        asker.conn.sendall(str.encode(response))
     except:
         pass
 
@@ -117,7 +117,7 @@ def logout(asker: Client, clients, proper=True):
     if proper:
         print(f"{get_timestamp(now)} {asker.username} disconnected with a LOGOUT message.")
         try:
-            asker.conn.send(b"*** Server has closed the connection ***")
+            asker.conn.sendall(b"*** Server has closed the connection ***")
         except:
             pass
     else:
@@ -140,7 +140,7 @@ def private_message(sender, clients, recipient_name, message):
     for client in clients.values():
         if client.username == recipient_name:
             try:
-                client.conn.send(str.encode(formatted_message + "\n\n"))
+                client.conn.sendall(str.encode(formatted_message + "\n\n"))
             except:
                 pass
 

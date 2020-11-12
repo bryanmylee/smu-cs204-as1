@@ -27,7 +27,7 @@ def get_server_socket(host, port):
 
 
 def login(server, username):
-    server.send(str.encode(username + "\n"))
+    server.sendall(str.encode(username + "\n"))
     print(motd, end="")
 
 
@@ -41,17 +41,17 @@ def listen_fn(name, server):
 
 
 def who_is_in(server):
-    server.send(b"users\n")
+    server.sendall(b"users\n")
 
 
 def logout(server):
-    server.send(b"exit\n")
+    server.sendall(b"exit\n")
     print("*** Server has closed the connection ***")
 
 
 def broadcast(server, sender, message):
     payload = f"msg{message}\n"
-    server.send(str.encode(payload))
+    server.sendall(str.encode(payload))
 
 
 def private_message(server, sender, recipient, message):
@@ -60,7 +60,7 @@ def private_message(server, sender, recipient, message):
     modularity and document all behaviours clearly in code.
     """
     payload = f"msg@{recipient} {message}\n"
-    server.send(str.encode(payload))
+    server.sendall(str.encode(payload))
 
 
 def handle_input(server):
